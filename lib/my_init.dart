@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-
-
 List<String> myBwSelect = ['Gbps', 'Gbps'];
 List<String> isSelectedValue = ['Gbps','Gbps'];
 List<String> myBwValue = ['1', '1'];
@@ -36,4 +34,3 @@ void myInit(){
   controllermyLoValue[0].text = '0';
   controllermyLoValue[1].text = '0';
 }
-
