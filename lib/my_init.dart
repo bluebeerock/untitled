@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 
+<<<<<<<<< Temporary merge branch 1
+=========
+
+
+>>>>>>>>> Temporary merge branch 2
 List<String> myBwSelect = ['Gbps', 'Gbps'];
 List<String> isSelectedValue = ['Gbps','Gbps'];
 List<String> myBwValue = ['1', '1'];
@@ -34,3 +39,4 @@ void myInit(){
   controllermyLoValue[0].text = '0';
   controllermyLoValue[1].text = '0';
 }
+
