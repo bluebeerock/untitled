@@ -10,8 +10,6 @@ class DropdownButtonMenu extends StatefulWidget {
 }
 
 class _DropdownButtonMenuState extends State<DropdownButtonMenu> {
-  //String isSelectedValue = 'Gbps';
-
   @override
   Widget build(BuildContext context) {
     return (DropdownButton(
@@ -20,12 +18,11 @@ class _DropdownButtonMenuState extends State<DropdownButtonMenu> {
         DropdownMenuItem(value: 'Mbps', child: Text('Mbps')),
         DropdownMenuItem(value: 'Kbps', child: Text('Kbps')),
       ],
-      value: isSelectedValue[widget.myno2],
+      value: myBwSelect[widget.myno2],
       onChanged: (String? value) {
         setState(() {
-          isSelectedValue[widget.myno2] = value!;
-          myBwSelect[widget.myno2] = isSelectedValue[widget.myno2];
-          debugPrint(isSelectedValue[widget.myno2]);
+          myBwSelect[widget.myno2] = value!;
+          debugPrint(myBwSelect[widget.myno2]);
         });
       },
     ));

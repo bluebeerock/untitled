@@ -14,195 +14,82 @@ class MyDelay extends StatefulWidget {
 }
 
 class _MyDelay extends State<MyDelay> {
-
-  int _radioValue = 1;
-  bool isConst = false; //true false
-  var  isForm = ' min';
-  var  isTo = ' max';
-  int  isMax = 0;
-  int  isMin = 0;
-  
   void _onRadioSelected(int? value) {
     setState(() {
-      if (value == 1) {
-        isConst = false; 
-        isForm = '';
-        isTo   = '';
-      }
-      else {
-        isConst = true; 
-        isForm = ' min';
-        isTo   = ' max';
-      }
-      _radioValue = value!;
-      myDlSelect[widget.myno5] = _radioValue.toString();
+      myDlSelect[widget.myno5] = (value ?? 1).toString();
     });
   }
-  // ボタンを押したら呼ばれる関数
-  /*
-  void _xxxx() {
-    debugPrint( myDlSelect.toString() );
-    debugPrint( myDlValue.toString()  );
-  }
-  */
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        color: Colors.cyanAccent,
-        child: Column(
-          children: [
-            Row(
-              children: <Widget>[
-            
-                // 1つめのボタン
-                SizedBox(
-                  height: 25 ,
-                  width: 160,
-                  child: RadioListTile(
-                    title: Text('Costant'),
-                    value: 1,
-                    groupValue: _radioValue,
-                    onChanged: (int? value) =>  _onRadioSelected(value),
-                  ),
-                ),
-            
-                // 2つ目のボタン
-                SizedBox(
-                  height: 25 ,
-                  width: 160,
-                  child: RadioListTile(
-                    title: Text('Uniform'),
-                    value: 2,
-                    groupValue: _radioValue,
-                    onChanged: (int? value) => _onRadioSelected(value),
-                  ),
-                ),
-            
-                // 3つ目のボタン
-                SizedBox(
-                  height: 25 ,
-                  width: 160,
-                  child: RadioListTile(
-                    title: Text('Normal'),
-                    value: 3,
-                    groupValue: _radioValue,
-                    onChanged: (int? value) => _onRadioSelected(value),
-                  ),
-                ),
-              ],
-            ),
-        
-            const Text(''),
-        
-            Row(
-              children: <Widget>[
-                const SizedBox(width:20),
-                SizedBox(
-                  height: 30 ,
-                  width: 240,
-                  child: Text(
-                    isForm,
-                  ),
-                ),
-                const SizedBox(width:20),
-                SizedBox(
-                  height: 30 ,
-                  width: 240,
-                  child: Text(
-                    isTo,
-                  ),
-                ),
-              ]
-            ),
-        
-            Row(
-              children: <Widget>[
-                SizedBox(width:20),
-                SizedBox(
-                  height: 30 ,
-                  width: 140,
-                  child: TextFormField(
-                    controller: controllermyDlValue[widget.myno3],
-                    textAlign: TextAlign.right,
-                    enabled: true,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    onChanged: (value) {
-                      //myDlValue[widget.myno3] = value;
-                    },
-                    decoration: InputDecoration(
-                      hintText: myDlValue[widget.myno3],
-                    ),
-                  ),
-                ),
-        
-                const SizedBox(
-                  height: 20 ,
-                  width: 100,
-                  child: Text(
-                    ' ms',
-                  ),
-                ),
-        
-                const SizedBox(width:20),
-                SizedBox(
-                  height: 30 ,
-                  width: 140,
-                  child: TextFormField(
-                    controller: controllermyDlValue[widget.myno4],
-                    textAlign: TextAlign.right,
-                    enabled: isConst,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    onChanged: (value) {
-                      //myDlValue[widget.myno4] = value;
-                    },
-                    decoration: InputDecoration(
-                      //border: OutlineInputBorder(),
-                      hintText: myDlValue[widget.myno4],
-                    ),
-                  ),
-                ),
-        
-                const SizedBox(
-                  height: 20 ,
-                  width: 100,
-                  child: Text(
-                    ' ms',
-                  ),
-                ),
-        
-              ],
-            ),
-            //const Text(''),
-            /*
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                ElevatedButton(
-                  onPressed: () => _xxxx(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue, // ボタンの背景色を青にする
-                    foregroundColor: Colors.white, // テキストの色を白にする
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10.0), // ボタンの角を丸くする
-                    ),
-                  ),
-                  child: const Text('設定'),
-                ),
-              ],
-            ),
-            */
-        
-          ],
-        ),
+  Widget _buildRadio(String title, int value, int groupValue) {
+    return SizedBox(
+      height: 25,
+      width: 160,
+      child: RadioListTile<int>(
+        title: Text(title),
+        value: value,
+        groupValue: groupValue,
+        onChanged: _onRadioSelected,
       ),
     );
   }
 
+  Widget _buildTimeField(int index, {required bool enabled}) {
+    return Row(
+      children: [
+        SizedBox(
+          height: 30,
+          width: 140,
+          child: TextFormField(
+            controller: controllermyDlValue[index],
+            textAlign: TextAlign.right,
+            enabled: enabled,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            decoration: InputDecoration(hintText: myDlValue[index]),
+          ),
+        ),
+        const SizedBox(height: 20, width: 100, child: Text(' ms')),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final int currentRadioValue = int.tryParse(myDlSelect[widget.myno5]) ?? 1;
+    final bool isNotConstant = currentRadioValue != 1;
+    final String formLabel = isNotConstant ? ' min' : '';
+    final String toLabel = isNotConstant ? ' max' : '';
+
+    return Container(
+      color: Colors.cyanAccent,
+      child: Column(
+        children: [
+          Row(
+            children: [
+              _buildRadio('Constant', 1, currentRadioValue),
+              _buildRadio('Uniform', 2, currentRadioValue),
+              _buildRadio('Normal', 3, currentRadioValue),
+            ],
+          ),
+          const SizedBox(height: 5),
+          Row(
+            children: [
+              const SizedBox(width: 20),
+              SizedBox(width: 240, height: 20, child: Text(formLabel)),
+              const SizedBox(width: 20),
+              SizedBox(width: 240, height: 20, child: Text(toLabel)),
+            ],
+          ),
+          Row(
+            children: [
+              const SizedBox(width: 20),
+              _buildTimeField(widget.myno3, enabled: true),
+              const SizedBox(width: 20),
+              _buildTimeField(widget.myno4, enabled: isNotConstant),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }
-
-
-

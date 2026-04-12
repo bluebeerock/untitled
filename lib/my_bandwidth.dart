@@ -15,21 +15,16 @@ class _MyBandwidthState extends State<MyBandwidth> {
   @override
   Widget build(BuildContext context) {
     return (Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly, // 適宜調整
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: <Widget>[
-        //SizedBox(width: 20,),
         SizedBox(
           height:  30,
           width:  120,
           child: TextFormField(
             controller: controllermyBwValue[widget.myno1],
             textAlign: TextAlign.right,
-            enabled: true,
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            onChanged: (value) {
-              //myBwValue[widget.myno1] = value;
-            },
             decoration: InputDecoration(
               hintText: myBwValue[widget.myno1]
             ),
