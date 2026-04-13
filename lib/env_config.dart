@@ -24,7 +24,6 @@ class EnvConfig {
       File file = File('${exeDir.path}/config.json');
       if (!(await file.exists())) {
         file = File('config.json'); 
-        file = File('config.json');
       }
 
 // debugPrint が動作しない場合の確認用として print も検討（開発時のみ）
