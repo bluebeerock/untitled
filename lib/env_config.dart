@@ -19,12 +19,15 @@ class EnvConfig {
       final exePath = Platform.resolvedExecutable;
       final Directory exeDir = File(exePath).parent;
       
+
       // まず実行ファイルの隣を探し、なければカレントディレクトリ（開発用）を探す
       File file = File('${exeDir.path}/config.json');
       if (!(await file.exists())) {
         file = File('config.json'); 
+        file = File('config.json');
       }
 
+// debugPrint が動作しない場合の確認用として print も検討（開発時のみ）
       debugPrint('Searching for config at: ${file.absolute.path}');
 
       if (await file.exists()) {
