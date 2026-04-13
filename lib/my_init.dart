@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 List<String> myBwSelect = ['Gbps', 'Gbps'];
-List<String> myBwValue = ['1', '1'];
+List<String> myBwValue = ['0', '0'];
 List<String> myDlSelect = ['1', '1' ];
 List<String> myDlValue = ['0', '0' , '0' ,'0'];
 List<String> myLoValue = ['0','0'];

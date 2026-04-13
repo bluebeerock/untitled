@@ -67,66 +67,57 @@ class _LanSettingsScreenState extends State<LanSettingsScreen> {
     );
   }
 
-  Widget _buildLabelCell(String text, {double? height}) {
+  Widget _buildLabelColumn() {
+    final labels = [
+      ('', myHeight),
+      ('帯域', myHeight),
+      ('遅延', myHeight1),
+      ('損失', myHeight),
+    ];
     return Container(
-      width: myWidth1,
-      height: height ?? myHeight,
-      decoration: _cellDecoration(color: Colors.blue),
-      child: Center(
-        child: Text(
-          text,
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 20, color: Colors.white),
-        ),
+      padding: const EdgeInsets.all(2.0),
+      child: Column(
+        children: labels.map((label) => Container(
+          width: myWidth1,
+          height: label.$2,
+          decoration: _cellDecoration(color: Colors.blue),
+          child: Center(
+            child: Text(
+              label.$1,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 20, color: Colors.white),
+            ),
+          ),
+        )).toList(),
       ),
     );
   }
 
-  Widget _buildDataColumn({
-    required String title,
-    required Color bgColor,
-    required int bwIndex,
-    required int delayIndexStart,
-    required int delayIndexEnd,
-    required int delaySelectIndex,
-    required int lossIndex,
-  }) {
+  Widget _buildDataColumn(int index) {
+    final title = index == 0 ? "LAN A → LAN B" : "LAN B → LAN A";
     return Container(
       padding: const EdgeInsets.all(2.0),
       width: myWidth,
       child: Column(
         children: [
-          Container(
-            width: myWidth,
-            height: myHeight,
-            decoration: _cellDecoration(color: bgColor),
-            child: Center(
-              child: Text(title, style: const TextStyle(fontSize: 20)),
-            ),
-          ),
-          Container(
-            width: myWidth,
-            height: myHeight,
-            decoration: _cellDecoration(color: bgColor),
-            child: MyBandwidth(myno1: bwIndex),
-          ),
-          Container(
+          _buildDataCell(Center(child: Text(title, style: const TextStyle(fontSize: 20)))),
+          _buildDataCell(MyBandwidth(myno1: index)),
+          _buildDataCell(
+            MyDelay(myno3: index * 2, myno4: index * 2 + 1, myno5: index),
             height: myHeight1,
-            decoration: _cellDecoration(color: bgColor),
-            child: MyDelay(
-              myno3: delayIndexStart,
-              myno4: delayIndexEnd,
-              myno5: delaySelectIndex,
-            ),
           ),
-          Container(
-            width: myWidth,
-            height: myHeight,
-            decoration: _cellDecoration(color: bgColor),
-            child: _buildLossInput(lossIndex),
-          ),
+          _buildDataCell(_buildLossInput(index)),
         ],
       ),
+    );
+  }
+
+  Widget _buildDataCell(Widget child, {double? height}) {
+    return Container(
+      width: myWidth,
+      height: height ?? myHeight,
+      decoration: _cellDecoration(color: myDefaultBg),
+      child: child,
     );
   }
 
@@ -186,6 +177,26 @@ class _LanSettingsScreenState extends State<LanSettingsScreen> {
     await executeProcess('echo Processes Executed');
   }
 
+  Widget _buildActionButtons() {
+    return SizedBox(
+      width: myWidth,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          _buildActionButton('初期化', () async {
+            setState(() {
+              myInit();
+              _executedCommands.clear();
+            });
+            await _resetNetworkSettings();
+          }),
+          const SizedBox(width: 10),
+          _buildActionButton('決定', _handleExecute),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -200,62 +211,15 @@ class _LanSettingsScreenState extends State<LanSettingsScreen> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                // Left Column (Labels)
+                _buildLabelColumn(),
+                _buildDataColumn(0),
                 Container(
                   padding: const EdgeInsets.all(2.0),
                   child: Column(
                     children: [
-                      _buildLabelCell(""),
-                      _buildLabelCell("帯域"),
-                      _buildLabelCell("遅延", height: myHeight1),
-                      _buildLabelCell("損失"),
-                    ],
-                  ),
-                ),
-                // Center Column (LAN A -> LAN B)
-                _buildDataColumn(
-                  title: "LAN A → LAN B",
-                  bgColor: myDefaultBg,
-                  bwIndex: 0,
-                  delayIndexStart: 0,
-                  delayIndexEnd: 1,
-                  delaySelectIndex: 0,
-                  lossIndex: 0,
-                ),
-                // Right Column (LAN B -> LAN A)
-                Container(
-                  padding: const EdgeInsets.all(2.0),
-                  child: Column(
-                    children: [
-                      _buildDataColumn(
-                        title: "LAN B → LAN A",
-                        bgColor: myDefaultBg,
-                        bwIndex: 1,
-                        delayIndexStart: 2,
-                        delayIndexEnd: 3,
-                        delaySelectIndex: 1,
-                        lossIndex: 1,
-                      ),
+                      _buildDataColumn(1),
                       const SizedBox(height: 20),
-                      SizedBox(
-                        width: myWidth,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            _buildActionButton('初期化', () async {
-                              setState(() {
-                                myInit();
-                                _executedCommands.clear();
-                              });
-                              
-                              // ネットワークコマンドの実行
-                              await _resetNetworkSettings();
-                            }),
-                            const SizedBox(width: 10),
-                            _buildActionButton('決定', _handleExecute),
-                          ],
-                        ),
-                      ),
+                      _buildActionButtons(),
                     ],
                   ),
                 ),
