@@ -16,7 +16,11 @@ Future<void> executeProcess(String cmd) async {
 
 const Color myDefaultBg = Colors.cyanAccent;
 
-void main() {
+void main() async {
+  // 非同期処理（ファイル読み込み）を行うために必要
+  WidgetsFlutterBinding.ensureInitialized();
+  // 実行時に設定ファイルを読み込む
+  await EnvConfig.load();
   runApp(MaterialApp(home: LanSettingsScreen()));
 }
 
@@ -32,6 +36,26 @@ class _LanSettingsScreenState extends State<LanSettingsScreen> {
   static double get myWidth => 550;
   static double get myHeight1 => 120;
   static double get myHeight => 70;
+
+  @override
+  void initState() {
+    super.initState();
+    // 起動時にネットワーク設定を初期化
+    _resetNetworkSettings();
+  }
+
+  /// 各インターフェースの tc 設定を削除する共通メソッド
+  Future<void> _resetNetworkSettings() async {
+    for (var interface in EnvConfig.interfaces) {
+      try {
+        await executeProcess('sudo tc qdisc del dev $interface root');
+        debugPrint('Success: Reset qdisc on $interface');
+      } catch (e) {
+        // 設定が既に存在しない場合はエラーが出るが、初期化なので無視する
+        debugPrint('Notice: No qdisc to delete on $interface');
+      }
+    }
+  }
 
   final List<String> _executedCommands = [];
 
@@ -211,11 +235,14 @@ class _LanSettingsScreenState extends State<LanSettingsScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            _buildActionButton('初期化', () {
+                            _buildActionButton('初期化', () async {
                               setState(() {
                                 myInit();
                                 _executedCommands.clear();
                               });
+                              
+                              // ネットワークコマンドの実行
+                              await _resetNetworkSettings();
                             }),
                             const SizedBox(width: 10),
                             _buildActionButton('決定', _handleExecute),

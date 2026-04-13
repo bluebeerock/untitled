@@ -24,6 +24,7 @@ void myInit(){
   myDlValue = ['0', '0' , '0' ,'0'];
   myLoValue = ['0','0'];
   
+  //sudo tc qdisc del dev eth0 root
   for (var controller in [...controllermyBwValue, ...controllermyDlValue, ...controllermyLoValue]) {
     controller.text = '0';
   }
