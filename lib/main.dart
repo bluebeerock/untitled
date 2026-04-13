@@ -150,33 +150,40 @@ class _LanSettingsScreenState extends State<LanSettingsScreen> {
     );
   }
 
-  void _handleExecute() {
+  Future<void> _handleExecute() async {
     setState(() {
       _executedCommands.clear();
-      for (int i = 0; i < 2; i++) {
-        final unit = myBwSelect[i];
-        final double multiplier = switch (unit) {
-          'Gbps' => 1e9,
-          'Mbps' => 1e6,
-          'Kbps' => 1e3,
-          _ => 1.0,
-        };
-
-        final rateStr = unit.toLowerCase().replaceAll('bps', 'bit');
-        final double bwVal = double.tryParse(controllermyBwValue[i].text) ?? 0;
-        final double burst = (bwVal * multiplier) / myHziConfig / 8;
-        final double limit = burst * 10;
-
-        final String tbf = 'tbf rate $bwVal$rateStr burst $burst limit $limit';
-        final String loss = 'netem loss ${controllermyLoValue[i].text}';
-
-        // 環境設定ファイルからインターフェース名を取得
-        myCmd[i] = '${myCmdHead[i]} ${EnvConfig.interfaces[i]} root $tbf $loss';
-        _executedCommands.add(myCmd[i]);
-        debugPrint(myCmd[i]);
-      }
     });
-    executeProcess('echo Processes Executed');
+    for (int i = 0; i < 2; i++) {
+      final unit = myBwSelect[i];
+      final double multiplier = switch (unit) {
+        'Gbps' => 1e9,
+        'Mbps' => 1e6,
+        'Kbps' => 1e3,
+        _ => 1.0,
+      };
+
+      final rateStr = unit.toLowerCase().replaceAll('bps', 'bit');
+      final double bwVal = double.tryParse(controllermyBwValue[i].text) ?? 0;
+      final double burst = (bwVal * multiplier) / myHziConfig / 8;
+      final double limit = burst * 10;
+
+      final String tbf = 'tbf rate $bwVal$rateStr burst $burst limit $limit';
+      final String loss = 'netem loss ${controllermyLoValue[i].text}';
+
+      myCmd[i] = '${myCmdHead[i]} ${EnvConfig.interfaces[i]} root $tbf $loss';
+      
+      setState(() {
+        _executedCommands.add(myCmd[i]);
+      });
+      
+      try {
+        await executeProcess(myCmd[i]);
+      } catch (e) {
+        debugPrint('Error executing command: $e');
+      }
+    }
+    await executeProcess('echo Processes Executed');
   }
 
   @override
