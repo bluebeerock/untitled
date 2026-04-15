@@ -28,7 +28,27 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // 実行時に設定ファイルを読み込む
   await EnvConfig.load();
-  runApp(MaterialApp(home: LanSettingsScreen()));
+  runApp(
+    MaterialApp(
+      home: const LanSettingsScreen(),
+      theme: ThemeData(
+        // アプリ全体のInputDecorationのデフォルトスタイルを定義
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.white, // デフォルトの背景色
+          contentPadding: const EdgeInsets.symmetric(horizontal: 10),
+          enabledBorder: OutlineInputBorder(
+            borderSide: const BorderSide(color: Colors.black26, width: 1.0),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderSide: const BorderSide(color: Colors.blueAccent, width: 3.0), // フォーカス時の太い枠線
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 class LanSettingsScreen extends StatefulWidget {
@@ -44,11 +64,22 @@ class _LanSettingsScreenState extends State<LanSettingsScreen> {
   static double get myHeight1 => 120;
   static double get myHeight => 70;
 
+  // FocusNodes for all inputs and buttons (4 per side * 2 + 3 buttons = 11)
+  final List<FocusNode> _focusNodes = List.generate(11, (_) => FocusNode());
+
   @override
   void initState() {
     super.initState();
     // 起動時にネットワーク設定を初期化
     _resetNetworkSettings();
+  }
+
+  @override
+  void dispose() {
+    for (var node in _focusNodes) {
+      node.dispose();
+    }
+    super.dispose();
   }
 
   /// 各インターフェースの tc 設定を削除する共通メソッド
@@ -108,12 +139,21 @@ class _LanSettingsScreenState extends State<LanSettingsScreen> {
       child: Column(
         children: [
           _buildDataCell(Center(child: Text(title, style: const TextStyle(fontSize: 20)))),
-          _buildDataCell(MyBandwidth(myno1: index)),
+          _buildDataCell(MyBandwidth(
+            myno1: index,
+            focusNode: _focusNodes[index * 4],
+          )),
           _buildDataCell(
-            MyDelay(myno3: index * 2, myno4: index * 2 + 1, myno5: index),
+            MyDelay(
+              myno3: index * 2,
+              myno4: index * 2 + 1,
+              myno5: index,
+              focusNode1: _focusNodes[index * 4 + 1],
+              focusNode2: _focusNodes[index * 4 + 2],
+            ),
             height: myHeight1,
           ),
-          _buildDataCell(_buildLossInput(index)),
+          _buildDataCell(_buildLossInput(index, _focusNodes[index * 4 + 3])),
         ],
       ),
     );
@@ -128,19 +168,27 @@ class _LanSettingsScreenState extends State<LanSettingsScreen> {
     );
   }
 
-  Widget _buildLossInput(int index) {
+  Widget _buildLossInput(int index, FocusNode focusNode) {
     return Row(
       children: [
         const SizedBox(width: 100),
         SizedBox(
-          height: 30,
+          height: 45, // 高さを少し広げて入力しやすく
           width: 140,
-          child: TextFormField(
-            controller: controllermyLoValue[index],
-            textAlign: TextAlign.right,
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: InputDecoration(hintText: myLoValue[index]),
+          child: Focus(
+            onFocusChange: (hasFocus) => setState(() {}),
+            child: TextFormField(
+              controller: controllermyLoValue[index],
+              textAlign: TextAlign.right,
+              keyboardType: TextInputType.number,
+              textInputAction: TextInputAction.next,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: InputDecoration(
+                hintText: myLoValue[index],
+                fillColor: focusNode.hasFocus ? Colors.yellow[50] : Colors.white,
+              ),
+              focusNode: focusNode,
+            ),
           ),
         ),
         const SizedBox(width: 100, child: Text(' %')),
@@ -152,7 +200,17 @@ class _LanSettingsScreenState extends State<LanSettingsScreen> {
     setState(() {
       _executedCommands.clear();
     });
+
     for (int i = 0; i < 2; i++) {
+      final double bwVal = double.tryParse(controllermyBwValue[i].text) ?? 0.0;
+      if (bwVal <= 0) {
+        // ignore: use_build_context_synchronously
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${i == 0 ? "LAN A → LAN B" : "LAN B → LAN A"} は帯域が0のため設定をスキップしました')),
+        );
+        continue; // 0の場合はこのインターフェースの設定をスキップして次へ
+      }
+
       final unit = myBwSelect[i];
       final double multiplier = switch (unit) {
         'Gbps' => 1e9,
@@ -161,7 +219,6 @@ class _LanSettingsScreenState extends State<LanSettingsScreen> {
         _ => 1.0,
       };
 
-      final double bwVal = double.tryParse(controllermyBwValue[i].text) ?? 1.0;
       final int rateInKbit = (bwVal * multiplier / 1000).toInt();
       
       // バーストとリミットの計算（最低値を保証してエラーを防ぐ）
@@ -234,7 +291,7 @@ class _LanSettingsScreenState extends State<LanSettingsScreen> {
       child: Row(
         children: [
           Expanded(
-            child: _buildActionButton('初期化', () async {
+            child: _buildActionButton('初期化', _focusNodes[8], () async {
               setState(() {
                 myInit();
                 _executedCommands.clear();
@@ -244,11 +301,11 @@ class _LanSettingsScreenState extends State<LanSettingsScreen> {
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: _buildActionButton('状態確認', _handleCheckStatus),
+            child: _buildActionButton('状態確認', _focusNodes[9], _handleCheckStatus),
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: _buildActionButton('決定', _handleExecute),
+            child: _buildActionButton('決定', _focusNodes[10], _handleExecute),
           ),
         ],
       ),
@@ -271,15 +328,12 @@ class _LanSettingsScreenState extends State<LanSettingsScreen> {
               children: <Widget>[
                 _buildLabelColumn(),
                 _buildDataColumn(0),
-                Container(
-                  padding: const EdgeInsets.all(2.0),
-                  child: Column(
-                    children: [
-                      _buildDataColumn(1),
-                      const SizedBox(height: 20),
-                      _buildActionButtons(),
-                    ],
-                  ),
+                Column(
+                  children: [
+                    _buildDataColumn(1),
+                    const SizedBox(height: 20),
+                    _buildActionButtons(),
+                  ],
                 ),
               ],
             ),
@@ -339,16 +393,34 @@ class _LanSettingsScreenState extends State<LanSettingsScreen> {
     );
   }
 
-  Widget _buildActionButton(String label, VoidCallback onPressed) {
+  Widget _buildActionButton(String label, FocusNode focusNode, VoidCallback onPressed) {
     return ElevatedButton(
+      focusNode: focusNode,
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
         minimumSize: const Size(double.infinity, 48),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12.0),
         ),
+      ).copyWith(
+        backgroundColor: WidgetStateProperty.resolveWith<Color?>((states) {
+          if (states.contains(WidgetState.focused)) {
+            return Colors.yellow[700]; // フォーカス時は黄色
+          }
+          return Colors.blue; // 通常時は青
+        }),
+        foregroundColor: WidgetStateProperty.resolveWith<Color?>((states) {
+          if (states.contains(WidgetState.focused)) {
+            return Colors.black; // 黄色背景に合わせて文字色を黒に
+          }
+          return Colors.white;
+        }),
+        side: WidgetStateProperty.resolveWith<BorderSide>((states) {
+          if (states.contains(WidgetState.focused)) {
+            return const BorderSide(color: Colors.blueAccent, width: 4.0); // フォーカス時に太い枠線
+          }
+          return BorderSide.none;
+        }),
       ),
       child: Text(label, style: const TextStyle(fontSize: 20)),
     );
