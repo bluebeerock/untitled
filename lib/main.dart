@@ -11,7 +11,14 @@ import 'env_config.dart';
 
 Future<void> executeProcess(String cmd) async {
   var shell = Shell();
-  await shell.run(cmd);
+  final results = await shell.run(cmd);
+  // 実行結果にエラーがないか確認するためのデバッグ出力
+  for (var result in results) {
+    if (result.exitCode != 0) {
+      debugPrint('Command failed: ${result.stderr}');
+      throw Exception(result.stderr);
+    }
+  }
 }
 
 const Color myDefaultBg = Colors.cyanAccent;
@@ -154,44 +161,95 @@ class _LanSettingsScreenState extends State<LanSettingsScreen> {
         _ => 1.0,
       };
 
-      final rateStr = unit.toLowerCase().replaceAll('bps', 'bit');
-      final double bwVal = double.tryParse(controllermyBwValue[i].text) ?? 0;
-      final double burst = (bwVal * multiplier) / myHziConfig / 8;
-      final double limit = burst * 10;
+      final double bwVal = double.tryParse(controllermyBwValue[i].text) ?? 1.0;
+      final int rateInKbit = (bwVal * multiplier / 1000).toInt();
+      
+      // バーストとリミットの計算（最低値を保証してエラーを防ぐ）
+      double calcBurst = (bwVal * multiplier) / myHziConfig / 8;
+      if (calcBurst < 1600) calcBurst = 1600; // 最小1600バイト
+      final double calcLimit = calcBurst * 10;
 
-      final String tbf = 'tbf rate $bwVal$rateStr burst $burst limit $limit';
-      final String loss = 'netem loss ${controllermyLoValue[i].text}';
+      // 遅延設定の組み立て (myDlSelect[i] が 1:Constant, 2:Uniform, 3:Normal)
+      String delayPart = 'delay ${controllermyDlValue[i * 2].text.isEmpty ? "0" : controllermyDlValue[i * 2].text}ms';
+      if (myDlSelect[i] != '1') {
+        final String jitter = controllermyDlValue[i * 2 + 1].text.isEmpty ? "0" : controllermyDlValue[i * 2 + 1].text;
+        delayPart += ' ${jitter}ms';
+        if (myDlSelect[i] == '3') {
+          delayPart += ' distribution normal';
+        }
+      }
 
-      myCmd[i] = '${myCmdHead[i]} ${EnvConfig.interfaces[i]} root $tbf $loss';
+      final String lossText = controllermyLoValue[i].text.isEmpty ? "0" : controllermyLoValue[i].text;
+
+      // コマンド生成
+      final String cmdNetem = 'sudo tc qdisc add dev ${EnvConfig.interfaces[i]} root handle 1: netem $delayPart loss $lossText%';
+      final String cmdTbf = 'sudo tc qdisc add dev ${EnvConfig.interfaces[i]} parent 1: tbf rate ${rateInKbit}kbit burst ${calcBurst.toInt()} limit ${calcLimit.toInt()}';
       
       setState(() {
-        _executedCommands.add(myCmd[i]);
+        _executedCommands.add(cmdNetem);
+        _executedCommands.add(cmdTbf);
+        // 表示用にコマンドを保持
+        myCmd[i] = '$cmdNetem && $cmdTbf';
       });
       
       try {
-        await executeProcess(myCmd[i]);
+        // 設定を適用する前に一度削除（既存設定によるエラー回避）
+        await executeProcess('sudo tc qdisc del dev ${EnvConfig.interfaces[i]} root').catchError((_){});
+        await executeProcess(cmdNetem);
+        await executeProcess(cmdTbf);
       } catch (e) {
-        debugPrint('Error executing command: $e');
+        setState(() {
+          _executedCommands.add('Error: $e');
+        });
       }
     }
     await executeProcess('echo Processes Executed');
+  }
+
+  /// 現在の tc 設定を取得して表示するメソッド
+  Future<void> _handleCheckStatus() async {
+    setState(() {
+      _executedCommands.clear();
+      _executedCommands.add('--- Current TC Status ---');
+    });
+
+    for (var interface in EnvConfig.interfaces) {
+      try {
+        var shell = Shell();
+        final results = await shell.run('tc qdisc show dev $interface');
+        setState(() {
+          for (var result in results) {
+            _executedCommands.add('[$interface]\n${result.stdout.toString().trim()}');
+          }
+        });
+      } catch (e) {
+        debugPrint('Error checking status: $e');
+      }
+    }
   }
 
   Widget _buildActionButtons() {
     return SizedBox(
       width: myWidth,
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          _buildActionButton('初期化', () async {
-            setState(() {
-              myInit();
-              _executedCommands.clear();
-            });
-            await _resetNetworkSettings();
-          }),
+          Expanded(
+            child: _buildActionButton('初期化', () async {
+              setState(() {
+                myInit();
+                _executedCommands.clear();
+              });
+              await _resetNetworkSettings();
+            }),
+          ),
           const SizedBox(width: 10),
-          _buildActionButton('決定', _handleExecute),
+          Expanded(
+            child: _buildActionButton('状態確認', _handleCheckStatus),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: _buildActionButton('決定', _handleExecute),
+          ),
         ],
       ),
     );
@@ -239,28 +297,38 @@ class _LanSettingsScreenState extends State<LanSettingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        '実行コマンド',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: Colors.blueGrey,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            '実行コマンド',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: Colors.blueGrey,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.copy, size: 20, color: Colors.blueGrey),
+                            tooltip: 'クリップボードにコピー',
+                            onPressed: () {
+                              Clipboard.setData(ClipboardData(text: _executedCommands.join('\n')));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('クリップボードにコピーしました')),
+                              );
+                            },
+                          ),
+                        ],
                       ),
                       const Divider(),
-                      ..._executedCommands
-                          .map((cmd) => Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 2),
-                                child: Text(
-                                  cmd,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.black87,
-                                    fontFamily: 'monospace',
-                                  ),
-                                ),
-                              ))
-                          ,
+                      SelectableText(
+                        _executedCommands.join('\n'),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.black87,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -277,6 +345,10 @@ class _LanSettingsScreenState extends State<LanSettingsScreen> {
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
+        minimumSize: const Size(double.infinity, 48),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.0),
+        ),
       ),
       child: Text(label, style: const TextStyle(fontSize: 20)),
     );

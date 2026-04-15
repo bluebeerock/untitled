@@ -1,4 +1,4 @@
 {
-  "LAN_A": "ethN",
-  "LAN_B": "ethM"
+  "LAN_A": "ens37",
+  "LAN_B": "ens38"
 }
