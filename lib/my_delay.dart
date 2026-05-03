@@ -7,7 +7,16 @@ class MyDelay extends StatefulWidget {
   final int myno3;
   final int myno4;
   final int myno5;
-  const MyDelay({super.key,  required this.myno3, required this.myno4, required this.myno5});
+  final FocusNode? focusNode1;
+  final FocusNode? focusNode2;
+  const MyDelay({
+    super.key,
+    required this.myno3,
+    required this.myno4,
+    required this.myno5,
+    this.focusNode1,
+    this.focusNode2,
+  });
 
   @override
   State<MyDelay> createState() => _MyDelay();
@@ -29,23 +38,34 @@ class _MyDelay extends State<MyDelay> {
         value: value,
         groupValue: groupValue,
         onChanged: _onRadioSelected,
+        focusNode: FocusNode(canRequestFocus: false), // ラジオボタンをTab順序から除外
       ),
     );
   }
 
-  Widget _buildTimeField(int index, {required bool enabled}) {
+  Widget _buildTimeField(int index, {required bool enabled, FocusNode? focusNode}) {
     return Row(
       children: [
         SizedBox(
-          height: 30,
+          height: 45,
           width: 140,
-          child: TextFormField(
-            controller: controllermyDlValue[index],
-            textAlign: TextAlign.right,
-            enabled: enabled,
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: InputDecoration(hintText: myDlValue[index]),
+          child: Focus(
+            onFocusChange: (hasFocus) => setState(() {}),
+            child: TextFormField(
+              controller: controllermyDlValue[index],
+              textAlign: TextAlign.right,
+              enabled: enabled,
+              keyboardType: TextInputType.number,
+              textInputAction: TextInputAction.next,
+              focusNode: focusNode,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: InputDecoration(
+                hintText: myDlValue[index],
+                fillColor: enabled 
+                    ? ((focusNode?.hasFocus ?? false) ? Colors.yellow[50] : Colors.white)
+                    : Colors.grey[200],
+              ),
+            ),
           ),
         ),
         const SizedBox(height: 20, width: 100, child: Text(' ms')),
@@ -83,9 +103,9 @@ class _MyDelay extends State<MyDelay> {
           Row(
             children: [
               const SizedBox(width: 20),
-              _buildTimeField(widget.myno3, enabled: true),
+              _buildTimeField(widget.myno3, enabled: true, focusNode: widget.focusNode1),
               const SizedBox(width: 20),
-              _buildTimeField(widget.myno4, enabled: isNotConstant),
+              _buildTimeField(widget.myno4, enabled: isNotConstant, focusNode: widget.focusNode2),
             ],
           ),
         ],
