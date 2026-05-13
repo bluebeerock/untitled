@@ -100,22 +100,22 @@ class _MyDelay extends State<MyDelay> {
           const SizedBox(height: 12),
           Row(
             children: [
-              const SizedBox(width: 20),
+              // const SizedBox(width: 156), // 帯域の中央揃えに合わせた左余白 - 左揃えのため削除
               SizedBox(width: 240, height: 20, child: Text(formLabel)),
-              const SizedBox(width: 20),
+              const SizedBox(width: 7), // 20pxから7pxに短縮
               SizedBox(width: 240, height: 20, child: Text(toLabel)),
             ],
           ),
           const SizedBox(height: 8),
           Row(
             children: [
-              const SizedBox(width: 20),
+              // const SizedBox(width: 156), // 帯域の中央揃えに合わせた左余白 - 左揃えのため削除
               _buildTimeField(
                 widget.myno3,
                 enabled: true,
                 focusNode: widget.focusNode1,
               ),
-              const SizedBox(width: 20),
+              const SizedBox(width: 7), // 20pxから7pxに短縮
               _buildTimeField(
                 widget.myno4,
                 enabled: isNotConstant,

@@ -15,8 +15,8 @@ class MyBandwidth extends StatefulWidget {
 class _MyBandwidthState extends State<MyBandwidth> {
   @override
   Widget build(BuildContext context) {
-    return (Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.start,
       children: <Widget>[
         SizedBox(
           height: 45,
@@ -43,12 +43,13 @@ class _MyBandwidthState extends State<MyBandwidth> {
             ),
           ),
         ),
+        const SizedBox(width: 7), // 入力欄とドロップダウンの間に7pxのスペースを挿入
         SizedBox(
           width: 110,
           height: 45,
           child: DropdownButtonMenu(myno2: widget.myno1),
         ),
       ],
-    ));
+    );
   }
 }

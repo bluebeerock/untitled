@@ -265,7 +265,7 @@ class _LanSettingsScreenState extends State<LanSettingsScreen> {
   Widget _buildLossInput(int index, FocusNode focusNode) {
     return Row(
       children: [
-        const SizedBox(width: 100),
+        // const SizedBox(width: 156), // 帯域の中央揃えに合わせた左余白 - 左揃えのため削除
         SizedBox(
           height: 45, // 高さを少し広げて入力しやすく
           width: 140,
