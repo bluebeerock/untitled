@@ -43,7 +43,11 @@ class _MyDelay extends State<MyDelay> {
     );
   }
 
-  Widget _buildTimeField(int index, {required bool enabled, FocusNode? focusNode}) {
+  Widget _buildTimeField(
+    int index, {
+    required bool enabled,
+    FocusNode? focusNode,
+  }) {
     return Row(
       children: [
         SizedBox(
@@ -61,8 +65,10 @@ class _MyDelay extends State<MyDelay> {
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               decoration: InputDecoration(
                 hintText: myDlValue[index],
-                fillColor: enabled 
-                    ? ((focusNode?.hasFocus ?? false) ? Colors.yellow[50] : Colors.white)
+                fillColor: enabled
+                    ? ((focusNode?.hasFocus ?? false)
+                          ? Colors.yellow[50]
+                          : Colors.white)
                     : Colors.grey[200],
               ),
             ),
@@ -77,8 +83,8 @@ class _MyDelay extends State<MyDelay> {
   Widget build(BuildContext context) {
     final int currentRadioValue = int.tryParse(myDlSelect[widget.myno5]) ?? 1;
     final bool isNotConstant = currentRadioValue != 1;
-    final String formLabel = isNotConstant ? ' min' : '';
-    final String toLabel = isNotConstant ? ' max' : '';
+    final String formLabel = isNotConstant ? ' 基準値' : '';
+    final String toLabel = isNotConstant ? ' ゆらぎ' : '';
 
     return Container(
       color: Colors.cyanAccent,
@@ -86,12 +92,12 @@ class _MyDelay extends State<MyDelay> {
         children: [
           Row(
             children: [
-              _buildRadio('Constant', 1, currentRadioValue),
-              _buildRadio('Uniform', 2, currentRadioValue),
-              _buildRadio('Normal', 3, currentRadioValue),
+              _buildRadio('固定', 1, currentRadioValue),
+              _buildRadio('正規分布', 2, currentRadioValue),
+              _buildRadio('標準偏差', 3, currentRadioValue),
             ],
           ),
-          const SizedBox(height: 5),
+          const SizedBox(height: 12),
           Row(
             children: [
               const SizedBox(width: 20),
@@ -100,12 +106,21 @@ class _MyDelay extends State<MyDelay> {
               SizedBox(width: 240, height: 20, child: Text(toLabel)),
             ],
           ),
+          const SizedBox(height: 8),
           Row(
             children: [
               const SizedBox(width: 20),
-              _buildTimeField(widget.myno3, enabled: true, focusNode: widget.focusNode1),
+              _buildTimeField(
+                widget.myno3,
+                enabled: true,
+                focusNode: widget.focusNode1,
+              ),
               const SizedBox(width: 20),
-              _buildTimeField(widget.myno4, enabled: isNotConstant, focusNode: widget.focusNode2),
+              _buildTimeField(
+                widget.myno4,
+                enabled: isNotConstant,
+                focusNode: widget.focusNode2,
+              ),
             ],
           ),
         ],

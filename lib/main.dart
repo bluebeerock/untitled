@@ -64,7 +64,7 @@ class LanSettingsScreen extends StatefulWidget {
 class _LanSettingsScreenState extends State<LanSettingsScreen> {
   double get myWidth1 => 150;
   static double get myWidth => 550;
-  static double get myHeight1 => 120;
+  static double get myHeight1 => 140;
   static double get myHeight => 70;
   static double get myHeightStatus =>
       35; // New: Height for interface status row
@@ -334,14 +334,33 @@ class _LanSettingsScreenState extends State<LanSettingsScreen> {
         calcBurst = 32000; // 瞬間的な通信の余裕を確保するため、最小値を 32KB に引き上げ
       }
 
-      // 遅延設定の組み立て (myDlSelect[i] が 1:Constant, 2:Uniform, 3:Normal)
-      String delayPart =
-          'delay ${controllermyDlValue[i * 2].text.isEmpty ? "0" : controllermyDlValue[i * 2].text}ms';
+      // 遅延設定の組み立て
+      // controllermyDlValue[i*2] を「ベース遅延」、[i*2+1] を「ゆらぎ（ジッター）」として扱う
+      final double dlyVal =
+          double.tryParse(controllermyDlValue[i * 2].text) ?? 0.0;
+      String delayPart = 'delay ${dlyVal.toInt()}ms';
+
       if (myDlSelect[i] != '1') {
-        final String jitter = controllermyDlValue[i * 2 + 1].text.isEmpty
-            ? "0"
-            : controllermyDlValue[i * 2 + 1].text;
-        delayPart += ' ${jitter}ms';
+        double jitVal =
+            double.tryParse(controllermyDlValue[i * 2 + 1].text) ?? 0.0;
+
+        // Linuxのnetemでは「ゆらぎ」が「ベース遅延」以上になるとエラー(Invalid argument)が発生するためバリデーションを行います
+        if (jitVal >= dlyVal && dlyVal > 0) {
+          jitVal = dlyVal - 1;
+          // ignore: use_build_context_synchronously
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                '${i == 0 ? "LAN A" : "LAN B"}: ゆらぎを遅延より小さい値(${jitVal.toInt()}ms)に自動調整しました',
+              ),
+            ),
+          );
+        }
+
+        delayPart += ' ${jitVal.toInt()}ms';
+
+        // distribution uniform はデフォルトなので明示的な指定を避け、
+        // normal 分布が必要な場合のみ指定するようにします。
         if (myDlSelect[i] == '3') {
           delayPart += ' distribution normal';
         }
@@ -353,7 +372,7 @@ class _LanSettingsScreenState extends State<LanSettingsScreen> {
 
       // コマンド生成
       final String cmdNetem =
-          'sudo tc qdisc replace dev ${EnvConfig.interfaces[i]} root handle 1: netem $delayPart loss $lossText% limit 100000';
+          'sudo tc qdisc add dev ${EnvConfig.interfaces[i]} root handle 1: netem $delayPart loss $lossText% limit 100000';
       final String cmdTbf =
           'sudo tc qdisc add dev ${EnvConfig.interfaces[i]} parent 1: tbf rate ${rateInKbit}kbit burst ${calcBurst.toInt()} latency 1000ms';
 
