@@ -36,7 +36,9 @@ class _MyDelay extends State<MyDelay> {
       child: RadioListTile<int>(
         title: Text(title),
         value: value,
+        // ignore: deprecated_member_use
         groupValue: groupValue,
+        // ignore: deprecated_member_use
         onChanged: _onRadioSelected,
         focusNode: FocusNode(canRequestFocus: false), // ラジオボタンをTab順序から除外
       ),
